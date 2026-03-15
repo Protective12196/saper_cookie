@@ -152,12 +152,10 @@
 
         function shareResults() {
             const shareText = `Мой рекорд в игре Печенька и сапер: ${stats.cookies}🍪\n\n🎮 Попробуй побить мой результат!\n@saper_cookie_bot`;
-            const shareUrl = `https://t.me/saper_cookie_bot/app`; // Ссылка на твое приложение
             
             if (tg && tg.shareUrl) {
                 tg.shareUrl(shareUrl, shareText);
             } else {
-                // Запасной вариант для браузера
                 const fullText = encodeURIComponent(shareText + "\n" + shareUrl);
                 window.open(`https://t.me/share/url?url=${shareUrl}&text=${encodeURIComponent(shareText)}`, '_blank');
             }
