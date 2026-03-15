@@ -90,7 +90,6 @@
 
         function shareResults() {
             const text = encodeURIComponent(`Мой рекорд в игре Печенька и сапер: ${stats.cookies} 🍪\n🕹️Попробуй побить мой рекорд! @saper-cookie_bot`);
-            // Используем прямой URL для шаринга, это работает всегда
             const shareUrl = `https://t.me/share/url?url=&text=${text}`;
             tg.openTelegramLink(shareUrl);
         }
