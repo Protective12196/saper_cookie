@@ -75,14 +75,13 @@
         let stats = { games: 0, cookies: 0 };
         let grid = [], gameOver = false, firstMove = true;
 
-        // Инициализация данных пользователя
         function initUser() {
             tg.ready();
             tg.expand();
             const user = tg.initDataUnsafe?.user;
             if (user) {
-                document.getElementById('userName').textContent = user.first_name;
-                document.getElementById('userPhoto').textContent = user.first_name.charAt(0);
+                document.getElementById('userName').textContent = user.first_name || "Игрок";
+                document.getElementById('userPhoto').textContent = (user.first_name || "И").charAt(0);
             } else {
                 document.getElementById('userName').textContent = "Игрок";
                 document.getElementById('userPhoto').textContent = "?";
@@ -90,8 +89,10 @@
         }
 
         function shareResults() {
-            const text = `Мой рекорд в игре Печенька и сапер: ${stats.cookies} 🍪\n🕹️Попробуй побить мой рекорд! @saper-cookie_bot`;
-            tg.shareUrl("", text);
+            const text = encodeURIComponent(`Мой рекорд в игре Печенька и сапер: ${stats.cookies} 🍪\n🕹️Попробуй побить мой рекорд! @saper-cookie_bot`);
+            // Используем прямой URL для шаринга, это работает всегда
+            const shareUrl = `https://t.me/share/url?url=&text=${text}`;
+            tg.openTelegramLink(shareUrl);
         }
 
         function startGame() {
