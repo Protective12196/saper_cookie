@@ -15,11 +15,10 @@
         }
         body { font-family: 'Segoe UI', sans-serif; min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; transition: 0.3s; overflow: hidden; }
         body.dark-theme { background: var(--bg-dark); color: var(--text-dark); }
-        body.light-theme { background: var(--bg-light); color: var(--text-light); }
         .hidden { display: none !important; }
         .header-panel { width: 100%; max-width: 400px; background: var(--panel-dark); padding: 12px 15px; border-radius: 18px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
         .user-block { display: flex; align-items: center; gap: 10px; }
-        #userPhoto { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+        #userPhoto { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; text-transform: uppercase; font-size: 20px; }
         .stats-block { display: flex; gap: 15px; }
         .stat-item { display: flex; flex-direction: column; text-align: center; }
         .stat-label { font-size: 10px; opacity: 0.7; font-weight: bold; }
@@ -45,7 +44,7 @@
 <body class="dark-theme">
     <div id="gameAlert">БАБАХ!</div>
     <div class="header-panel">
-        <div class="user-block"><div id="userPhoto">?</div><div id="userName">Игрок</div></div>
+        <div class="user-block"><div id="userPhoto">?</div><div id="userName">Загрузка...</div></div>
         <div class="stats-block">
             <div class="stat-item"><span class="stat-label">Игр сыграно</span><span class="stat-value" id="gamesPlayed">0</span></div>
             <div class="stat-item"><span class="stat-label">Печеньки</span><span class="stat-value"><span id="cookiesFound">0</span> 🍪</span></div>
@@ -72,24 +71,51 @@
     </div>
 
     <script>
-        const tg = window.Telegram?.WebApp;
+        const tg = window.Telegram.WebApp;
         let stats = { games: 0, cookies: 0 };
-        let grid = [], gameOver = false, gameActive = false;
+        let grid = [], gameOver = false, firstMove = true;
+
+        // Инициализация данных пользователя
+        function initUser() {
+            tg.ready();
+            tg.expand();
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                document.getElementById('userName').textContent = user.first_name;
+                document.getElementById('userPhoto').textContent = user.first_name.charAt(0);
+            } else {
+                document.getElementById('userName').textContent = "Игрок";
+                document.getElementById('userPhoto').textContent = "?";
+            }
+        }
 
         function shareResults() {
             const text = `Мой рекорд в игре Печенька и сапер: ${stats.cookies} 🍪\n🕹️Попробуй побить мой рекорд! @saper-cookie_bot`;
-            if (tg && tg.shareUrl) tg.shareUrl("", text);
-            else window.open(`https://t.me/share/url?url=&text=${encodeURIComponent(text)}`);
+            tg.shareUrl("", text);
         }
 
         function startGame() {
-            gameOver = false; gameActive = true;
-            const bCount = parseInt(document.getElementById('bombSlider').value);
+            gameOver = false; firstMove = true;
             const board = document.getElementById('gameBoard');
             board.innerHTML = '';
             grid = Array(25).fill(0);
-            let bombs = Array.from({length: 25}, (_, i) => i).sort(() => Math.random() - 0.5).slice(0, bCount);
-            bombs.forEach(p => grid[p] = 'B');
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell'; cell.id = 'cell-'+i;
+                cell.onclick = () => handleCell(i, true);
+                board.appendChild(cell);
+            }
+            showScreen('game');
+        }
+
+        function generateBoard(firstClickIndex) {
+            const bCount = parseInt(document.getElementById('bombSlider').value);
+            let indices = Array.from({length: 25}, (_, i) => i);
+            let safeStart = Math.random() > 0.20; 
+            let available = safeStart ? indices.filter(idx => idx !== firstClickIndex) : indices;
+            let bombPos = available.sort(() => Math.random() - 0.5).slice(0, bCount);
+            grid = Array(25).fill(0);
+            bombPos.forEach(p => grid[p] = 'B');
 
             for (let i = 0; i < 25; i++) {
                 if (grid[i] === 'B') continue;
@@ -100,33 +126,22 @@
                 }
                 grid[i] = count;
             }
-
-            grid.forEach((_, i) => {
-                const cell = document.createElement('div');
-                cell.className = 'cell'; cell.id = 'cell-'+i;
-                cell.onclick = () => handleCell(i, true);
-                board.appendChild(cell);
-            });
-            showScreen('game');
         }
 
         function handleCell(i, isDirectClick) {
             if (gameOver || document.getElementById('cell-'+i).classList.contains('revealed')) return;
-            const cell = document.getElementById('cell-'+i);
-            
-            // Если это вскрытие соседей, и там бомба — НЕ вскрываем
-            if (!isDirectClick && grid[i] === 'B') return;
+            if (firstMove && isDirectClick) { generateBoard(i); firstMove = false; }
 
+            const cell = document.getElementById('cell-'+i);
+            if (!isDirectClick && grid[i] === 'B') return;
             cell.classList.add('revealed');
 
             if (grid[i] === 'B') {
-                gameOver = true; gameActive = false; stats.games++;
+                gameOver = true; stats.games++;
                 document.getElementById('gamesPlayed').textContent = stats.games;
                 revealAllBombs();
                 triggerAlert('БАБАХ!');
             } else {
-                // ПЕЧЕНЬКА: шанс 35% только при ПРЯМОМ клике. 
-                // Если клетка вскрыта автоматически (isDirectClick = false), там всегда цифра/пустота.
                 if (isDirectClick && Math.random() < 0.35) {
                     cell.innerHTML = '🍪'; stats.cookies++;
                     document.getElementById('cookiesFound').textContent = stats.cookies;
@@ -134,11 +149,7 @@
                     cell.innerHTML = grid[i] > 0 ? grid[i] : '';
                     if (grid[i] > 0) cell.classList.add('n-' + grid[i]);
                 }
-
-                // 40% шанс на вскрытие соседей только при прямом клике
-                if (isDirectClick && Math.random() < 0.40) {
-                    revealNeighbors(i);
-                }
+                if (isDirectClick && Math.random() < 0.40) revealNeighbors(i);
                 checkWin();
             }
         }
@@ -147,9 +158,7 @@
             let r = Math.floor(i/5), c = i%5;
             for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
                 let nr=r+dr, nc=c+dc, idx=nr*5+nc;
-                if (nr>=0 && nr<5 && nc>=0 && nc<5 && idx !== i) {
-                    handleCell(idx, false); // false запрещает взрывы и печеньки у соседей
-                }
+                if (nr>=0 && nr<5 && nc>=0 && nc<5 && idx !== i) handleCell(idx, false);
             }
         }
 
@@ -157,7 +166,7 @@
             const revealed = document.querySelectorAll('.cell.revealed').length;
             const bCount = parseInt(document.getElementById('bombSlider').value);
             if (revealed === 25 - bCount && !gameOver) {
-                gameOver = true; gameActive = false; stats.games++;
+                gameOver = true; stats.games++;
                 document.getElementById('gamesPlayed').textContent = stats.games;
                 triggerAlert('ПОБЕДА!');
             }
@@ -180,13 +189,12 @@
         }
 
         function showScreen(id) {
-            if (id === 'menu') gameActive = false;
             ['menu', 'game', 'settings'].forEach(s => document.getElementById(s+'Screen').classList.add('hidden'));
             document.getElementById(id+'Screen').classList.remove('hidden');
         }
 
         document.getElementById('bombSlider').oninput = (e) => document.getElementById('bombCountDisplay').textContent = e.target.value;
-        window.onload = () => { if (tg) { tg.ready(); tg.expand(); } };
+        window.onload = initUser;
     </script>
 </body>
 </html>
