@@ -27,8 +27,12 @@
         .btn { padding: 16px; font-size: 18px; font-weight: bold; border: none; border-radius: 16px; cursor: pointer; margin: 10px 0; width: 100%; text-transform: uppercase; transition: 0.1s; position: relative; }
         .btn-primary { background: var(--accent); color: white; box-shadow: 0 5px 0 var(--accent-shadow); }
         .btn-primary:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--accent-shadow); }
+        
         .btn-secondary { background: rgba(255,255,255,0.1); color: white; box-shadow: 0 5px 0 rgba(0,0,0,0.3); }
+        .btn-secondary:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+        
         .btn-share { background: #2ecc71; color: white; box-shadow: 0 5px 0 #27ae60; }
+        .btn-share:active { transform: translateY(3px); box-shadow: 0 2px 0 #27ae60; }
 
         .game-controls-area { width: 100%; max-width: 400px; margin-bottom: 10px; text-align: center; }
         .flags-counter { font-size: 14px; font-weight: bold; color: #ffffff; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
@@ -47,7 +51,7 @@
         #gameAlert { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; color: white; padding: 15px; border-radius: 15px; text-align: center; font-weight: 900; z-index: 1000; transition: 0.4s; }
         #gameAlert.show { top: 20px; }
         .alert-win { background: #2ecc71 !important; box-shadow: 0 0 20px rgba(46, 204, 113, 0.5); }
-        .alert-lose { background: #e74c3c !important; }
+        .alert-lose { background: #e74c3c !important; box-shadow: 0 0 20px rgba(231, 76, 60, 0.6); }
     </style>
 </head>
 <body>
@@ -172,7 +176,6 @@
             if (grid[i] === 'B') {
                 endGame(false);
             } else {
-                // НОВАЯ СИСТЕМА: Расчет вероятности печеньки (от 0.07 до 1.0)
                 let cookieChance = currentBombCount / 15; 
                 
                 if (isDirectClick && Math.random() < cookieChance) {
